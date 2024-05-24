@@ -1,6 +1,7 @@
 import cv2
 import os
 import numpy as np
+from pyfcm import FCMNotification
 
 
 def capture_video_and_extract_frames(user_id, duration=3, save_path='dataset'):
@@ -103,6 +104,17 @@ def augment_dataset(dataset_path='processed', augmented_path='augmented'):
 
 
 
+def send_push_notification(registration_id, message_title, message_body):
+    api_key = "9ea96945-3a37-4638-a5d4-22e89fbc998f"
+    push_service = FCMNotification(api_key=api_key)
+    
+    result = push_service.notify_single_device(registration_id=registration_id, message_title=message_title, message_body=message_body)
+    print(result)
+
+
+
+#registration_id = "DEVICE_REGISTRATION_ID"
+#send_push_notification(registration_id, "2FA Verification", "Please verify your login attempt.")
 # Zajemanje slik 
 #capture_video_and_extract_frames(user_id=1)
 #preprocess_dataset()
