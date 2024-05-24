@@ -1,5 +1,7 @@
 import cv2
 import os
+import numpy as np
+
 
 def capture_video_and_extract_frames(user_id, duration=3, save_path='dataset'):
     # Ustvari mapo, če ne obstaja
