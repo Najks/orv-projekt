@@ -61,6 +61,28 @@ def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
         cv2.imwrite(processed_img_path, processed_img)
         print(f"{processed_img_path} saved.")
 
+def augment_image(image):
+    augmented_images = []
+    
+    # Horizontalna zrcalna slika
+    flip_horizontal = cv2.flip(image, 1)
+    augmented_images.append(flip_horizontal)
+    
+    # Povečanje svetlosti
+    bright_image = cv2.convertScaleAbs(image, alpha=1.2, beta=30)
+    augmented_images.append(bright_image)
+    
+    # Povečanje kontrasta
+    contrast_image = cv2.convertScaleAbs(image, alpha=1.5, beta=0)
+    augmented_images.append(contrast_image)
+    
+    # Rotacija
+    rows, cols = image.shape[:2]
+    M = cv2.getRotationMatrix2D((cols / 2, rows / 2), 10, 1)
+    rotated_image = cv2.warpAffine(image, M, (cols, rows))
+    augmented_images.append(rotated_image)
+    
+    return augmented_images
 
 # Zajemanje slik 
 #capture_video_and_extract_frames(user_id=1)
