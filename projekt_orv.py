@@ -48,7 +48,20 @@ def preprocess_image(image_path):
     
     return gray_image
 
+def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
+    if not os.path.exists(processed_path):
+        os.makedirs(processed_path)
+
+    for filename in os.listdir(dataset_path):
+        img_path = os.path.join(dataset_path, filename)
+        processed_img = preprocess_image(img_path)
+        
+        # Shrani obdelano sliko
+        processed_img_path = os.path.join(processed_path, filename)
+        cv2.imwrite(processed_img_path, processed_img)
+        print(f"{processed_img_path} saved.")
 
 
 # Zajemanje slik 
 #capture_video_and_extract_frames(user_id=1)
+#preprocess_dataset()
