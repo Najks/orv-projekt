@@ -36,5 +36,19 @@ def capture_video_and_extract_frames(user_id, duration=3, save_path='dataset'):
     cap.release()
     cv2.destroyAllWindows()
 
-# Zajemanje slik za uporabnika s ID 1
-capture_video_and_extract_frames(user_id=1)
+
+def preprocess_image(image_path):
+    image = cv2.imread(image_path)
+    
+    # Odstranjevanje šuma z Gaussovim zamegljevanjem
+    image = cv2.GaussianBlur(image, (5, 5), 0)
+    
+    # Pretvorba v sivinsko lestvico
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    return gray_image
+
+
+
+# Zajemanje slik 
+#capture_video_and_extract_frames(user_id=1)
