@@ -48,6 +48,7 @@ def preprocess_image(image_path):
     
     return gray_image
 
+
 def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
     if not os.path.exists(processed_path):
         os.makedirs(processed_path)
@@ -60,6 +61,7 @@ def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
         processed_img_path = os.path.join(processed_path, filename)
         cv2.imwrite(processed_img_path, processed_img)
         print(f"{processed_img_path} saved.")
+
 
 def augment_image(image):
     augmented_images = []
@@ -84,6 +86,25 @@ def augment_image(image):
     
     return augmented_images
 
+
+def augment_dataset(dataset_path='processed', augmented_path='augmented'):
+    if not os.path.exists(augmented_path):
+        os.makedirs(augmented_path)
+
+    for filename in os.listdir(dataset_path):
+        img_path = os.path.join(dataset_path, filename)
+        image = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+        
+        augmented_images = augment_image(image)
+        for i, aug_img in enumerate(augmented_images):
+            aug_img_path = os.path.join(augmented_path, f"{filename.split('.')[0]}_aug_{i}.jpg")
+            cv2.imwrite(aug_img_path, aug_img)
+            print(f"{aug_img_path} saved.")
+
+
+
 # Zajemanje slik 
 #capture_video_and_extract_frames(user_id=1)
 #preprocess_dataset()
+# Augmentacija vseh slik v processed mapi
+#augment_dataset()
