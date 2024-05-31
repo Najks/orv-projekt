@@ -64,28 +64,61 @@ def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
         print(f"{processed_img_path} saved.")
 
 
+
+
 def augment_image(image):
     augmented_images = []
-    
-    # Horizontalna zrcalna slika
-    flip_horizontal = cv2.flip(image, 1)
+
+    # Horizontal flip
+    flip_horizontal = np.fliplr(image)
     augmented_images.append(flip_horizontal)
     
-    # Povečanje svetlosti
-    bright_image = cv2.convertScaleAbs(image, alpha=1.2, beta=30)
+    # Increase brightness
+    bright_image = np.clip(image * 1.2 + 30, 0, 255).astype(np.uint8)
     augmented_images.append(bright_image)
     
-    # Povečanje kontrasta
-    contrast_image = cv2.convertScaleAbs(image, alpha=1.5, beta=0)
+    # Increase contrast
+    contrast_image = np.clip(image * 1.5, 0, 255).astype(np.uint8)
     augmented_images.append(contrast_image)
     
-    # Rotacija
+    # Rotate image by a random angle between -10 and 10 degrees
     rows, cols = image.shape[:2]
-    M = cv2.getRotationMatrix2D((cols / 2, rows / 2), 10, 1)
-    rotated_image = cv2.warpAffine(image, M, (cols, rows))
+    angle = np.random.uniform(-10, 10)
+    M = np.array([[np.cos(np.deg2rad(angle)), -np.sin(np.deg2rad(angle)), 0],
+                  [np.sin(np.deg2rad(angle)), np.cos(np.deg2rad(angle)), 0],
+                  [0, 0, 1]])
+    M[0, 2] = (cols - cols * np.cos(np.deg2rad(angle)) + rows * np.sin(np.deg2rad(angle))) / 2
+    M[1, 2] = (rows - cols * np.sin(np.deg2rad(angle)) - rows * np.cos(np.deg2rad(angle))) / 2
+
+    rotated_image = np.zeros_like(image)
+    for i in range(rows):
+        for j in range(cols):
+            coords = np.dot(M, [j, i, 1])
+            x, y = int(coords[0]), int(coords[1])
+            if 0 <= x < cols and 0 <= y < rows:
+                rotated_image[y, x] = image[i, j]
     augmented_images.append(rotated_image)
+
+    # Salt and pepper noise
+    salt_prob = 0.02
+    pepper_prob = 0.02
+    noisy_image = np.copy(image)
+    num_salt = np.ceil(salt_prob * image.size)
+    num_pepper = np.ceil(pepper_prob * image.size)
+
+    # Add salt (white) noise
+    salt_coords = [np.random.randint(0, i, int(num_salt)) for i in image.shape]
+    noisy_image[salt_coords] = 255
+
+    # Add pepper (black) noise
+    pepper_coords = [np.random.randint(0, i, int(num_pepper)) for i in image.shape]
+    noisy_image[pepper_coords] = 0
+
+    augmented_images.append(noisy_image)
     
     return augmented_images
+
+
 
 
 def augment_dataset(dataset_path='processed', augmented_path='augmented'):
@@ -116,7 +149,7 @@ def send_push_notification(registration_id, message_title, message_body):
 #registration_id = "DEVICE_REGISTRATION_ID"
 #send_push_notification(registration_id, "2FA Verification", "Please verify your login attempt.")
 # Zajemanje slik 
-#capture_video_and_extract_frames(user_id=1)
+capture_video_and_extract_frames(user_id=1)
 #preprocess_dataset()
 # Augmentacija vseh slik v processed mapi
 #augment_dataset()
