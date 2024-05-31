@@ -4,10 +4,8 @@ import os
 
 app = Flask(__name__)
 
-# Pravilna uporaba poti
 UPLOAD_FOLDER = os.path.join('C:', 'Users', 'nikda', 'project-rai-backend', 'uploads')
 
-# Preverjanje obstoja mape in ustvarjanje, če ne obstaja
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
@@ -22,7 +20,7 @@ def upload_video():
     client_id = request.form.get('client_id')
 
     if not client_id:
-        return jsonify({'error': 'No client_id provided'}), 400
+        return jsonify({'error': 'No client ID provided'}), 400
 
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
     file.save(file_path)
