@@ -154,4 +154,4 @@ def send_push_notification(registration_id, message_title, message_body):
 #capture_video_and_extract_frames(user_id=1)
 #preprocess_dataset()
 # Augmentacija vseh slik v processed mapi
-augment_dataset()
+# augment_dataset()
