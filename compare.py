@@ -28,47 +28,35 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
-
 def predict_image(image_path, model, transform):
     image = Image.open(image_path).convert('RGB')
     image = transform(image).unsqueeze(0).to(device)
     with torch.no_grad():
         outputs = model(image)
+    softmax = torch.nn.functional.softmax(outputs, dim=1)
     _, predicted = torch.max(outputs, 1)
-    return predicted.item()
-
+    return predicted.item(), softmax.cpu().numpy()[0]
 
 def compare():
     total_scores = np.zeros(len(classes))
-    class_correct = list(0. for _ in range(len(classes)))
-    class_total = list(0. for _ in range(len(classes)))
+    total_probabilities = np.zeros(len(classes))
+    count = 0
 
     image_dir = 'augmented'
     image_names = os.listdir(image_dir)
 
     for image_name in image_names:
         image_path = os.path.join(image_dir, image_name)
-        predicted_class = predict_image(image_path, model, transform)
-        true_class = classes.index(image_name.split('_')[0])  # Extract true class from image name
+        predicted_class, probabilities = predict_image(image_path, model, transform)
         total_scores[predicted_class] += 1
-        if predicted_class == true_class:
-            class_correct[predicted_class] += 1
-        class_total[true_class] += 1
+        total_probabilities[predicted_class] += probabilities[predicted_class]
+        count += 1
+        print(f'Image: {image_name}, Predicted Class: {classes[predicted_class]}, Probability: {probabilities[predicted_class]}')
 
-    # Print individual class accuracies
-    for i, cls in enumerate(classes):
-        accuracy = 100 * class_correct[i] / class_total[i]
-        print(f'Accuracy for {cls}: {accuracy:.2f}%')
-
-    # Calculate overall accuracy
-    total_correct = sum(class_correct)
-    total_images = sum(class_total)
-    overall_accuracy = 100 * total_correct / total_images
-    print(f'Overall Accuracy: {overall_accuracy:.2f}%')
-
+    average_probabilities = total_probabilities / total_scores
+    max_class_index = np.argmax(total_scores)
     print('Total Scores:', total_scores)
-
-
+    print(f'Class with most count: {classes[max_class_index]}, Average Probability: {average_probabilities[max_class_index]}')
 
 def clear_directory(directory_path):
     for filename in os.listdir(directory_path):
@@ -77,7 +65,6 @@ def clear_directory(directory_path):
             os.unlink(file_path)
         elif os.path.isdir(file_path):
             shutil.rmtree(file_path)
-
 
 if __name__ == '__main__':
     projekt_orv.preprocess_dataset()
