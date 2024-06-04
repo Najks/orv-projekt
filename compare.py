@@ -20,6 +20,8 @@ model.eval()
 total_scores = np.zeros(len(['domen', 'nejc', 'nik']))
 count = 0
 
+
+
 image_dir = 'learning/learning_nik'
 image_names = os.listdir(image_dir)
 
