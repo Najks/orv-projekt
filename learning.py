@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.data import random_split, DataLoader
 from torch.utils.data import ConcatDataset
+from tqdm import tqdm
 
 transform = transforms.Compose([
     transforms.toTensor(),
@@ -42,7 +43,7 @@ num_epochs = 10
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
-    for inputs, labels in train_loader:
+    for inputs, labels in tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}"):
         inputs = inputs.to(device)
         labels = labels.to(device)
 
@@ -56,6 +57,6 @@ for epoch in range(num_epochs):
         running_loss += loss.item() * inputs.size(0)
 
     epoch_loss = running_loss / len(train_dataset)
-    print(f'Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss}')
+    print(f'Loss: {epoch_loss}')
 
 torch.save(model.state_dict(), 'model.pth')
