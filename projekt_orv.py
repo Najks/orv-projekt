@@ -107,12 +107,14 @@ def augment_image(image):
     num_pepper = np.ceil(pepper_prob * image.size)
 
     # Add salt (white) noise
-    salt_coords = [np.random.randint(0, i, int(num_salt)) for i in image.shape]
-    noisy_image[salt_coords] = 255
+    salt_x = np.random.randint(0, image.shape[1], int(num_salt))
+    salt_y = np.random.randint(0, image.shape[0], int(num_salt))
+    noisy_image[salt_y, salt_x] = 255
 
     # Add pepper (black) noise
-    pepper_coords = [np.random.randint(0, i, int(num_pepper)) for i in image.shape]
-    noisy_image[pepper_coords] = 0
+    pepper_x = np.random.randint(0, image.shape[1], int(num_pepper))
+    pepper_y = np.random.randint(0, image.shape[0], int(num_pepper))
+    noisy_image[pepper_y, pepper_x] = 0
 
     augmented_images.append(noisy_image)
     
@@ -121,7 +123,7 @@ def augment_image(image):
 
 
 
-def augment_dataset(dataset_path='processed', augmented_path='augmented'):
+def augment_dataset(dataset_path='processed/processed_nik', augmented_path='learning/learning_nik'):
     if not os.path.exists(augmented_path):
         os.makedirs(augmented_path)
 
@@ -149,7 +151,7 @@ def send_push_notification(registration_id, message_title, message_body):
 #registration_id = "DEVICE_REGISTRATION_ID"
 #send_push_notification(registration_id, "2FA Verification", "Please verify your login attempt.")
 # Zajemanje slik 
-capture_video_and_extract_frames(user_id=1)
+#capture_video_and_extract_frames(user_id=1)
 #preprocess_dataset()
 # Augmentacija vseh slik v processed mapi
-#augment_dataset()
+augment_dataset()
