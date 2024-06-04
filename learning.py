@@ -6,7 +6,7 @@ from torch.optim import Adam
 from torch.utils.data import random_split, DataLoader
 from torch.utils.data import ConcatDataset
 from tqdm import tqdm
-from torchvision.models.resnet import resnet50
+from facenet_pytorch import MTCNN, InceptionResnetV1
 
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -29,7 +29,8 @@ batch_size = 32
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-model = models.resnet18(pretrained=True)
+mtcnn = MTCNN(image_size=160, margin=0, min_face_size=20)
+model = InceptionResnetV1(pretrained='vggface2').eval()
 
 num_fts = model.fc.in_features
 model.fc = nn.Linear(num_fts, len(classes))

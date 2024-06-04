@@ -1,3 +1,5 @@
+import shutil
+
 import torch
 from torchvision import transforms, models
 from PIL import Image
@@ -17,46 +19,59 @@ model.fc = torch.nn.Linear(num_ftrs, len(['domen', 'nejc', 'nik']))
 model.load_state_dict(torch.load('model.pth'))
 model.eval()
 
-total_scores = np.zeros(len(['domen', 'nejc', 'nik']))
-count = 0
+def compare():
 
+    total_scores = np.zeros(len(['domen', 'nejc', 'nik']))
+    count = 0
 
+    image_dir = 'augmented'
+    image_names = os.listdir(image_dir)
 
-image_dir = 'learning/learning_nik'
-image_names = os.listdir(image_dir)
+    random_image_names = random.sample(image_names, 10)
 
-random_image_names = random.sample(image_names, 10)
+    for image_name in random_image_names:
+        image_path = os.path.join(image_dir, image_name)
+        image = Image.open(image_path).convert('RGB')
 
-for image_name in random_image_names:
-    image_path = os.path.join(image_dir, image_name)
-    image = Image.open(image_path).convert('RGB')
+        image = transform(image).unsqueeze(0)
 
-    image = transform(image).unsqueeze(0)
+        output = model(image)
 
-    output = model(image)
+        probabilities = torch.nn.functional.softmax(output, dim=1).detach().numpy()
 
-    probabilities = torch.nn.functional.softmax(output, dim=1).detach().numpy()
+        probabilities = probabilities.flatten()
 
-    probabilities = probabilities.flatten()
+        total_scores += probabilities
 
-    total_scores += probabilities
+        count += 1
 
-    count += 1
+    average_scores = total_scores / count
 
-average_scores = total_scores / count
+    predicted_class = np.argmax(average_scores)
 
-predicted_class = np.argmax(average_scores)
+    recognition_threshold = 0.5
 
-recognition_threshold = 0.5
+    if average_scores[predicted_class] < recognition_threshold:
+        print("The model cannot recognize the person.")
+    else:
+        class_mapping = {0: 'domen', 1: 'nejc', 2: 'nik'}
+        predicted_class_name = class_mapping[predicted_class]
 
-if average_scores[predicted_class] < recognition_threshold:
-    print("The model cannot recognize the person.")
-else:
-    class_mapping = {0: 'domen', 1: 'nejc', 2: 'nik'}
-    predicted_class_name = class_mapping[predicted_class]
+        print(f"The model predicts class {predicted_class_name} with average score {average_scores[predicted_class]*100:.2f}%")
 
-    print(f"The model predicts class {predicted_class_name} with average score {average_scores[predicted_class]*100:.2f}%")
+import os
+
+def clear_directory(directory_path):
+    for filename in os.listdir(directory_path):
+        file_path = os.path.join(directory_path, filename)
+        if os.path.isfile(file_path) or os.path.islink(file_path):
+            os.unlink(file_path)
+        elif os.path.isdir(file_path):
+            shutil.rmtree(file_path)
 
 if __name__ == '__main__':
-    projekt_orv.preprocess_image()
+    projekt_orv.preprocess_dataset()
     projekt_orv.augment_dataset()
+    compare()
+    clear_directory('processed')
+    clear_directory('augmented')
