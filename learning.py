@@ -34,3 +34,28 @@ model.fc = nn.Linear(num_fts, len(classes))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = model.to(device)
+
+criterion = nn.CrossEntropyLoss()
+optimizer = Adam(model.parameters(), lr=0.001)
+
+num_epochs = 10
+for epoch in range(num_epochs):
+    model.train()
+    running_loss = 0.0
+    for inputs, labels in train_loader:
+        inputs = inputs.to(device)
+        labels = labels.to(device)
+
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item() * inputs.size(0)
+
+    epoch_loss = running_loss / len(train_dataset)
+    print(f'Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss}')
+
+torch.save(model.state_dict(), 'model.pth')
