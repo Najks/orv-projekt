@@ -1,39 +1,32 @@
-import os
 import torch
 from torchvision import datasets, models, transforms
 import torch.nn as nn
 from torch.optim import Adam
 from torch.utils.data import random_split, DataLoader
-from torch.utils.data import ConcatDataset
 from tqdm import tqdm
-from facenet_pytorch import MTCNN, InceptionResnetV1
 
 transform = transforms.Compose([
+    transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 data_dir = 'learning'
 classes = ['domen', 'nejc', 'nik']
-datasets = {x: datasets.ImageFolder(os.path.join(data_dir), transform) for x in classes}
+dataset = datasets.ImageFolder(data_dir, transform=transform)
 
-all_datasets = ConcatDataset([datasets[x] for x in classes])
-
-total_size = len(all_datasets)
+total_size = len(dataset)
 train_size = int(0.8 * total_size)
 val_size = total_size - train_size
-
-train_dataset, val_dataset = random_split(all_datasets, [train_size, val_size])
+train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 batch_size = 32
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-mtcnn = MTCNN(image_size=160, margin=0, min_face_size=20)
-model = InceptionResnetV1(pretrained='vggface2').eval()
+model = models.mobilenet_v2(pretrained=True)
 
-num_fts = model.fc.in_features
-model.fc = nn.Linear(num_fts, len(classes))
+model.classifier[1] = nn.Linear(model.last_channel, len(classes))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = model.to(device)
