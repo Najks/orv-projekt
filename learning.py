@@ -20,15 +20,22 @@ train_size = int(0.8 * total_size)
 val_size = total_size - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 batch_size = 32
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-model = models.mobilenet_v2(pretrained=True)
+model = models.resnet50(pretrained=True)
 
-model.classifier[1] = nn.Linear(model.last_channel, len(classes))
+# Freeze the layers
+for param in model.parameters():
+    param.requires_grad = False
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# Modify the last layer
+num_ftrs = model.fc.in_features
+model.fc = nn.Linear(num_ftrs, len(classes))
+
 model = model.to(device)
 
 criterion = nn.CrossEntropyLoss()

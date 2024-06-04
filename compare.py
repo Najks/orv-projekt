@@ -1,6 +1,7 @@
 import shutil
 
 import torch
+from torch import nn
 from torchvision import transforms, models
 from PIL import Image
 import os
@@ -8,16 +9,34 @@ import numpy as np
 import random
 import projekt_orv
 
+# Import necessary libraries
+import torch
+from torchvision import transforms, models
+from PIL import Image
+import numpy as np
+import os
+import random
+
+# Define the transformation
 transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-model = models.resnet18()
+# Load the ResNet50 model
+model = models.resnet50(pretrained=True)
+
+# Modify the last layer
 num_ftrs = model.fc.in_features
-model.fc = torch.nn.Linear(num_ftrs, len(['domen', 'nejc', 'nik']))
+model.fc = nn.Linear(num_ftrs, len(['domen', 'nejc', 'nik']))
+
+# Load the trained model weights
 model.load_state_dict(torch.load('model.pth'))
+
+# Set the model to evaluation mode
 model.eval()
+
+# Rest of the code remains the same
 
 def compare():
 
@@ -49,12 +68,12 @@ def compare():
 
     predicted_class = np.argmax(average_scores)
 
-    recognition_threshold = 0.5
+    recognition_threshold = 0.1
 
     if average_scores[predicted_class] < recognition_threshold:
         print("The model cannot recognize the person.")
     else:
-        class_mapping = {0: 'domen', 1: 'nejc', 2: 'nik'}
+        class_mapping = {0: 'domen', 1: 'domen', 2: 'nik'}
         predicted_class_name = class_mapping[predicted_class]
 
         print(f"The model predicts class {predicted_class_name} with average score {average_scores[predicted_class]*100:.2f}%")
