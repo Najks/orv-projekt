@@ -6,15 +6,16 @@ from torch.optim import Adam
 from torch.utils.data import random_split, DataLoader
 from torch.utils.data import ConcatDataset
 from tqdm import tqdm
+from torchvision.models.resnet import resnet50
 
 transform = transforms.Compose([
-    transforms.toTensor(),
+    transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 data_dir = 'learning'
 classes = ['domen', 'nejc', 'nik']
-datasets = {x: datasets.ImageFolder(os.path.join(data_dir, f'learning_{x}'), transform) for x in classes}
+datasets = {x: datasets.ImageFolder(os.path.join(data_dir), transform) for x in classes}
 
 all_datasets = ConcatDataset([datasets[x] for x in classes])
 
@@ -28,7 +29,7 @@ batch_size = 32
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-model = models.resnet50(pretrained=True)
+model = models.resnet18(pretrained=True)
 
 num_fts = model.fc.in_features
 model.fc = nn.Linear(num_fts, len(classes))

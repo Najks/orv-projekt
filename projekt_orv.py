@@ -123,7 +123,7 @@ def augment_image(image):
 
 
 
-def augment_dataset(dataset_path='processed/processed_nik', augmented_path='learning/learning_nik'):
+def augment_dataset(dataset_path='processed', augmented_path='learning'):
     if not os.path.exists(augmented_path):
         os.makedirs(augmented_path)
 
