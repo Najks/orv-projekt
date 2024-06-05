@@ -11,13 +11,14 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     data_transforms = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(20),
         transforms.Grayscale(num_output_channels=3),
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     ])
 
-    # Load the dataset
     data_dir = 'learning'
     image_dataset = datasets.ImageFolder(data_dir, data_transforms)
     dataloader = DataLoader(image_dataset, batch_size=32, shuffle=True, num_workers=4)
@@ -27,18 +28,18 @@ if __name__ == '__main__':
     model = InceptionResnetV1(pretrained='vggface2').train()
     num_ftrs = model.last_linear.in_features
 
-    # Keep the original last linear layer
     model.last_linear = nn.Linear(num_ftrs, 512)
 
-    # Add another linear layer to map to the number of classes
     model.classifier = nn.Linear(512, len(class_names))
 
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
-    def train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=25, patience=5):
+
+    def train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=25, patience=3):
         best_model_wts = model.state_dict()
         best_acc = 0.0
         no_improvement_count = 0
@@ -73,6 +74,8 @@ if __name__ == '__main__':
 
             print(f'Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
 
+            scheduler.step(epoch_loss)
+
             if epoch_acc > best_acc:
                 best_acc = epoch_acc
                 best_model_wts = model.state_dict()
@@ -87,6 +90,6 @@ if __name__ == '__main__':
         model.load_state_dict(best_model_wts)
         return model
 
-    model = train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=25, patience=5)
+    model = train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=25, patience=3)
 
-    torch.save(model.state_dict(), 'face_recognition_model_1.pth')
+    torch.save(model.state_dict(), 'face_recognition_model.pth')
