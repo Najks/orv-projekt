@@ -190,7 +190,7 @@ def augment_image(image):
 
 
 
-def augment_dataset(dataset_path='processed', augmented_path='learning'):
+def augment_dataset(dataset_path='processed', augmented_path='comparing'):
     if not os.path.exists(augmented_path):
         os.makedirs(augmented_path)
 
