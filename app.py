@@ -1,20 +1,20 @@
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 import os
-from projekt_orv import preprocess_dataset, augment_dataset, send_push_notification
+from projekt_orv import preprocess_dataset, augment_dataset
 from compare import compare_images
 import requests
 
 app = Flask(__name__)
-# TODO nastavi dejanske mape
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['PROCESSED_FOLDER'] = 'static/processed'
 app.config['AUGMENTED_FOLDER'] = 'static/augmented'
+app.config['DATASET_FOLDER'] = 'dataset'
 
-# TODO isto tukaj da so iste s node.js streznikom
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
 os.makedirs(app.config['AUGMENTED_FOLDER'], exist_ok=True)
+os.makedirs(app.config['DATASET_FOLDER'], exist_ok=True)
 
 @app.route('/upload_video', methods=['POST'])
 def upload_video():
@@ -35,12 +35,18 @@ def process_video():
     if not file_path or not os.path.exists(file_path):
         return jsonify({'error': 'File path is invalid or does not exist'}), 400
 
-    # Klicanje funkcije za predobdelavo in augmentacijo
-    preprocess_dataset(file_path, app.config['PROCESSED_FOLDER'])
-    augment_dataset(app.config['PROCESSED_FOLDER'], app.config['AUGMENTED_FOLDER'])
+    dataset_path = app.config['DATASET_FOLDER']
+    processed_path = app.config['PROCESSED_FOLDER']
+    augmented_path = app.config['AUGMENTED_FOLDER']
 
-    # Preverjanje identitete
-    verification_result = compare_images(app.config['AUGMENTED_FOLDER'])
+    # Move uploaded file to dataset folder
+    new_file_path = os.path.join(dataset_path, os.path.basename(file_path))
+    os.rename(file_path, new_file_path)
+
+    preprocess_dataset(dataset_path, processed_path)
+    augment_dataset(processed_path, augmented_path)
+
+    verification_result = compare_images(augmented_path)
     
     return jsonify({'success': verification_result != 0, 'identity': verification_result}), 200
 
@@ -51,7 +57,6 @@ def send_notification():
     title = data.get('title')
     message = data.get('message')
 
-    # Pošiljanje obvestila preko Node.js API
     try:
         response = requests.post('http://localhost:3001/send-notification', json={
             'userId': registration_id,
