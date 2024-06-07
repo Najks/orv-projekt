@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 import os
 from projekt_orv import preprocess_dataset, augment_dataset, send_push_notification
 from compare import compare_images
+import requests
 
 app = Flask(__name__)
 # TODO nastavi dejanske mape
@@ -50,9 +51,19 @@ def send_notification():
     title = data.get('title')
     message = data.get('message')
 
-    # TODO placeholder ni dokončna implementacija
-    send_push_notification(registration_id, title, message)
-    return jsonify({'message': 'Notification sent successfully'}), 200
+    # Pošiljanje obvestila preko Node.js API
+    try:
+        response = requests.post('http://<NODE_SERVER_URL>/send-notification', json={
+            'userId': registration_id,
+            'title': title,
+            'message': message
+        })
+        if response.status_code == 200:
+            return jsonify({'message': 'Notification sent successfully'}), 200
+        else:
+            return jsonify({'error': 'Failed to send notification'}), response.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
