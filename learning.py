@@ -6,7 +6,6 @@ from torchvision import datasets, transforms, models
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from facenet_pytorch import InceptionResnetV1
-
 if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -21,21 +20,22 @@ if __name__ == '__main__':
 
     data_dir = 'learning'
     image_dataset = datasets.ImageFolder(data_dir, data_transforms)
-    dataloader = DataLoader(image_dataset, batch_size=32, shuffle=True, num_workers=4)
+    dataloader = DataLoader(image_dataset, batch_size=64, shuffle=True, num_workers=4)
     dataset_size = len(image_dataset)
     class_names = image_dataset.classes
 
-    model = InceptionResnetV1(pretrained='vggface2').train()
-    num_ftrs = model.last_linear.in_features
-
-    model.last_linear = nn.Linear(num_ftrs, 512)
-
-    model.classifier = nn.Linear(512, len(class_names))
+    model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 512)
+    model.classifier = nn.Sequential(
+        nn.Dropout(0.5),
+        nn.Linear(512, len(class_names))
+    )
 
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=0.01)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
 
@@ -90,6 +90,6 @@ if __name__ == '__main__':
         model.load_state_dict(best_model_wts)
         return model
 
-    model = train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=25, patience=3)
+    model = train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=25, patience=5)
 
     torch.save(model.state_dict(), 'face_recognition_model.pth')

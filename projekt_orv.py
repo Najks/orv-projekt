@@ -39,15 +39,19 @@ def capture_video_and_extract_frames(user_id, duration=3, save_path='dataset'):
 
 
 def preprocess_image(image_path):
-    image = cv2.imread(image_path)
-    
-    # Odstranjevanje šuma z Gaussovim zamegljevanjem
-    image = cv2.GaussianBlur(image, (5, 5), 0)
-    
-    # Pretvorba v sivinsko lestvico
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    return gray_image
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+    img = cv2.imread(image_path)
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+
+    for (x, y, w, h) in faces:
+        faces = img[y:y + h, x:x + w]
+        cv2.imwrite(image_path, faces)
+
+    return faces
 
 
 def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
