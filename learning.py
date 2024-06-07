@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     data_dir = 'learning'
     image_dataset = datasets.ImageFolder(data_dir, data_transforms)
-    dataloader = DataLoader(image_dataset, batch_size=64, shuffle=True, num_workers=4)
+    dataloader = DataLoader(image_dataset, batch_size=32, shuffle=True, num_workers=4)
     dataset_size = len(image_dataset)
     class_names = image_dataset.classes
 
@@ -35,11 +35,11 @@ if __name__ == '__main__':
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=0.01)
+    optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=0.001)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
 
-    def train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=25, patience=3):
+    def train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=50, patience=3):
         best_model_wts = model.state_dict()
         best_acc = 0.0
         no_improvement_count = 0
