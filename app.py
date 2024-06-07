@@ -1,41 +1,58 @@
 from flask import Flask, request, jsonify
-import subprocess
+from werkzeug.utils import secure_filename
 import os
+from projekt_orv import preprocess_dataset, augment_dataset, send_push_notification
+from compare import compare_images
 
 app = Flask(__name__)
+# TODO nastavi dejanske mape
+app.config['UPLOAD_FOLDER'] = 'static/uploads'
+app.config['PROCESSED_FOLDER'] = 'static/processed'
+app.config['AUGMENTED_FOLDER'] = 'static/augmented'
 
-# Nastavite mapo za nalaganje videoposnetkov
-UPLOAD_FOLDER = os.path.join('C:', 'Users', 'nikda', 'project-rai-backend', 'uploads')
+# TODO isto tukaj da so iste s node.js streznikom
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
+os.makedirs(app.config['AUGMENTED_FOLDER'], exist_ok=True)
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+@app.route('/upload_video', methods=['POST'])
+def upload_video():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if file:
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        return jsonify({'message': 'File uploaded successfully', 'file_path': file_path}), 201
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+@app.route('/process_video', methods=['POST'])
+def process_video():
+    file_path = request.json.get('file_path')
+    if not file_path or not os.path.exists(file_path):
+        return jsonify({'error': 'File path is invalid or does not exist'}), 400
 
-# Endpoint za preverjanje identitete
-@app.route('/verify_video', methods=['POST'])
-def verify_video():
-    # Pridobite ime datoteke in client_id iz zahteve
-    video_filename = request.form.get('video_filename')
-    client_id = request.form.get('client_id')
+    # Klicanje funkcije za predobdelavo in augmentacijo
+    preprocess_dataset(file_path, app.config['PROCESSED_FOLDER'])
+    augment_dataset(app.config['PROCESSED_FOLDER'], app.config['AUGMENTED_FOLDER'])
 
-    # Preverite, če so vse potrebne informacije prisotne
-    if not video_filename or not client_id:
-        return jsonify({'error': 'Missing required fields'}), 400
+    # Preverjanje identitete
+    verification_result = compare_images(app.config['AUGMENTED_FOLDER'])
+    
+    return jsonify({'success': verification_result != 0, 'identity': verification_result}), 200
 
-    video_path = os.path.join(app.config['UPLOAD_FOLDER'], video_filename)
+@app.route('/send_notification', methods=['POST'])
+def send_notification():
+    data = request.json
+    registration_id = data.get('registration_id')
+    title = data.get('title')
+    message = data.get('message')
 
-    # Preverite, če videoposnetek obstaja
-    if not os.path.exists(video_path):
-        return jsonify({'error': 'Video file not found'}), 404
-
-    try:
-        # Zamenjajta 'projekt_orv.py z dejansko dat ki trenira model'
-        result = subprocess.check_output(['python', 'projekt_orv.py', video_path, client_id])
-        return jsonify({'result': result.decode('utf-8')}), 200
-    except subprocess.CalledProcessError as e:
-        return jsonify({'error': e.output.decode('utf-8')}), 500
+    # TODO placeholder ni dokončna implementacija
+    send_push_notification(registration_id, title, message)
+    return jsonify({'message': 'Notification sent successfully'}), 200
 
 if __name__ == '__main__':
-    # Zagon Flask aplikacije
-    app.run(debug=True, port=5000)
+    app.run(debug=True)
