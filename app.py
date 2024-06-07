@@ -53,7 +53,7 @@ def send_notification():
 
     # Pošiljanje obvestila preko Node.js API
     try:
-        response = requests.post('http://<NODE_SERVER_URL>/send-notification', json={
+        response = requests.post('http://localhost:3001/send-notification', json={
             'userId': registration_id,
             'title': title,
             'message': message
