@@ -1,0 +1,79 @@
+import os
+import torch
+import torch.nn as nn
+from torchvision import transforms, models
+from PIL import Image
+import torch.nn.functional as F
+from collections import Counter
+from facenet_pytorch import InceptionResnetV1
+
+if __name__ == '__main__':
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    data_transforms = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(20),
+        transforms.Grayscale(num_output_channels=3),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ])
+
+    model = models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1)
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 512)
+    model.classifier = nn.Sequential(
+        nn.Dropout(0.5),
+        nn.Linear(512, 3)
+    )
+    model = model.to(device)
+    model.eval()
+
+    test_images_folder = 'comparing'
+    images = []
+
+    for filename in os.listdir(test_images_folder):
+        image_path = os.path.join(test_images_folder, filename)
+        image = Image.open(image_path)
+        image = data_transforms(image).unsqueeze(0)
+        images.append(image)
+
+    class_mapping = {'domen': 1, 'nik': 2, 'nejc': 3}
+    predictions = []
+
+
+    def compare_images(test_images_folder='comparing', threshold=0):
+        images = []
+        for filename in os.listdir(test_images_folder):
+            image_path = os.path.join(test_images_folder, filename)
+            image = Image.open(image_path)
+            image = data_transforms(image).unsqueeze(0)
+            images.append(image)
+
+        class_names = ['domen', 'nejc', 'nik']
+        class_mapping = {'domen': 1, 'nik': 2, 'nejc': 3}
+        predictions = []
+
+        with torch.no_grad():
+            confident_predictions = []
+            for image in images:
+                image = image.to(device)
+                outputs = model.classifier(model(image))
+                probs = F.softmax(outputs, dim=1)
+                max_prob, preds = torch.max(probs, 1)
+                confidence = max_prob.item() * 100
+                if confidence > threshold:
+                    confident_predictions.append((class_names[preds.item()], confidence))
+                predictions.append((class_names[preds.item()], confidence))
+                print(f"Image result: {class_names[preds.item()]}, Accuracy: {confidence}%")
+
+            if len(confident_predictions) < len(predictions) / 2:
+                return 0
+            else:
+                class_counts = Counter(prediction[0] for prediction in confident_predictions)
+                most_common_class = class_counts.most_common(1)[0]
+                return class_mapping[most_common_class[0]]
+
+
+    result = compare_images()
+    print(result)

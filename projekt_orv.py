@@ -39,15 +39,19 @@ def capture_video_and_extract_frames(user_id, duration=3, save_path='dataset'):
 
 
 def preprocess_image(image_path):
-    image = cv2.imread(image_path)
-    
-    # Odstranjevanje šuma z Gaussovim zamegljevanjem
-    image = cv2.GaussianBlur(image, (5, 5), 0)
-    
-    # Pretvorba v sivinsko lestvico
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    return gray_image
+    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+    img = cv2.imread(image_path)
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+
+    for (x, y, w, h) in faces:
+        faces = img[y:y + h, x:x + w]
+        cv2.imwrite(image_path, faces)
+
+    return faces
 
 
 def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
@@ -66,29 +70,131 @@ def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
 
 def augment_image(image):
     augmented_images = []
-    
-    # Horizontalna zrcalna slika
-    flip_horizontal = cv2.flip(image, 1)
-    augmented_images.append(flip_horizontal)
-    
-    # Povečanje svetlosti
-    bright_image = cv2.convertScaleAbs(image, alpha=1.2, beta=30)
-    augmented_images.append(bright_image)
-    
-    # Povečanje kontrasta
-    contrast_image = cv2.convertScaleAbs(image, alpha=1.5, beta=0)
-    augmented_images.append(contrast_image)
-    
-    # Rotacija
     rows, cols = image.shape[:2]
-    M = cv2.getRotationMatrix2D((cols / 2, rows / 2), 10, 1)
-    rotated_image = cv2.warpAffine(image, M, (cols, rows))
-    augmented_images.append(rotated_image)
+    
+    for _ in range(4):
+        augmented_image = image.copy()
+        
+        # Horizontal flip with a probability of 0.5
+        if np.random.rand() > 0.5:
+            augmented_image = np.fliplr(augmented_image)
+        
+        # Random brightness change
+        brightness_factor = np.random.uniform(0.8, 1.2)
+        augmented_image = np.clip(augmented_image * brightness_factor + np.random.uniform(-30, 30), 0, 255).astype(np.uint8)
+        
+        # Random contrast change
+        contrast_factor = np.random.uniform(0.8, 1.5)
+        augmented_image = np.clip(augmented_image * contrast_factor, 0, 255).astype(np.uint8)
+        
+        # Rotate image by a random angle between -15 and 15 degrees
+        angle = np.random.uniform(-15, 15)
+        M = np.array([[np.cos(np.deg2rad(angle)), -np.sin(np.deg2rad(angle)), 0],
+                      [np.sin(np.deg2rad(angle)), np.cos(np.deg2rad(angle)), 0],
+                      [0, 0, 1]])
+        M[0, 2] = (cols - cols * np.cos(np.deg2rad(angle)) + rows * np.sin(np.deg2rad(angle))) / 2
+        M[1, 2] = (rows - cols * np.sin(np.deg2rad(angle)) - rows * np.cos(np.deg2rad(angle))) / 2
+        
+        rotated_image = np.zeros_like(augmented_image)
+        for i in range(rows):
+            for j in range(cols):
+                coords = np.dot(M, [j, i, 1])
+                x, y = int(coords[0]), int(coords[1])
+                if 0 <= x < cols and 0 <= y < rows:
+                    rotated_image[y, x] = augmented_image[i, j]
+        augmented_image = rotated_image
+
+        # Salt and pepper noise
+        salt_prob = np.random.uniform(0.01, 0.05)
+        pepper_prob = np.random.uniform(0.01, 0.05)
+        num_salt = np.ceil(salt_prob * augmented_image.size)
+        num_pepper = np.ceil(pepper_prob * augmented_image.size)
+
+        salt_x = np.random.randint(0, cols, int(num_salt))
+        salt_y = np.random.randint(0, rows, int(num_salt))
+        augmented_image[salt_y, salt_x] = 255
+
+        pepper_x = np.random.randint(0, cols, int(num_pepper))
+        pepper_y = np.random.randint(0, rows, int(num_pepper))
+        augmented_image[pepper_y, pepper_x] = 0
+
+        # Random resizing
+        new_cols = np.random.randint(int(cols * 0.8), int(cols * 1.2))
+        new_rows = np.random.randint(int(rows * 0.8), int(rows * 1.2))
+        resized_image = np.zeros((new_rows, new_cols, 3), dtype=np.uint8)
+        for i in range(new_rows):
+            for j in range(new_cols):
+                orig_x = int(j / new_cols * cols)
+                orig_y = int(i / new_rows * rows)
+                resized_image[i, j] = augmented_image[orig_y, orig_x]
+
+        augmented_images.append(resized_image)
     
     return augmented_images
 
 
-def augment_dataset(dataset_path='processed', augmented_path='augmented'):
+
+
+'''
+def augment_image(image):
+    augmented_images = []
+
+    # Horizontal flip
+    flip_horizontal = np.fliplr(image)
+    augmented_images.append(flip_horizontal)
+    
+    # Increase brightness
+    bright_image = np.clip(image * 1.2 + 30, 0, 255).astype(np.uint8)
+    augmented_images.append(bright_image)
+    
+    # Increase contrast
+    contrast_image = np.clip(image * 1.5, 0, 255).astype(np.uint8)
+    augmented_images.append(contrast_image)
+    
+    # Rotate image by a random angle between -10 and 10 degrees
+    rows, cols = image.shape[:2]
+    angle = np.random.uniform(-10, 10)
+    M = np.array([[np.cos(np.deg2rad(angle)), -np.sin(np.deg2rad(angle)), 0],
+                  [np.sin(np.deg2rad(angle)), np.cos(np.deg2rad(angle)), 0],
+                  [0, 0, 1]])
+    M[0, 2] = (cols - cols * np.cos(np.deg2rad(angle)) + rows * np.sin(np.deg2rad(angle))) / 2
+    M[1, 2] = (rows - cols * np.sin(np.deg2rad(angle)) - rows * np.cos(np.deg2rad(angle))) / 2
+
+    rotated_image = np.zeros_like(image)
+    for i in range(rows):
+        for j in range(cols):
+            coords = np.dot(M, [j, i, 1])
+            x, y = int(coords[0]), int(coords[1])
+            if 0 <= x < cols and 0 <= y < rows:
+                rotated_image[y, x] = image[i, j]
+    augmented_images.append(rotated_image)
+
+    # Salt and pepper noise
+    salt_prob = 0.02
+    pepper_prob = 0.02
+    noisy_image = np.copy(image)
+    num_salt = np.ceil(salt_prob * image.size)
+    num_pepper = np.ceil(pepper_prob * image.size)
+
+    # Add salt (white) noise
+    salt_x = np.random.randint(0, image.shape[1], int(num_salt))
+    salt_y = np.random.randint(0, image.shape[0], int(num_salt))
+    noisy_image[salt_y, salt_x] = 255
+
+    # Add pepper (black) noise
+    pepper_x = np.random.randint(0, image.shape[1], int(num_pepper))
+    pepper_y = np.random.randint(0, image.shape[0], int(num_pepper))
+    noisy_image[pepper_y, pepper_x] = 0
+
+    augmented_images.append(noisy_image)
+    
+    return augmented_images
+'''
+
+
+
+
+def augment_dataset(dataset_path='processed', augmented_path='comparing'):
     if not os.path.exists(augmented_path):
         os.makedirs(augmented_path)
 
@@ -117,6 +223,6 @@ def send_push_notification(registration_id, message_title, message_body):
 #send_push_notification(registration_id, "2FA Verification", "Please verify your login attempt.")
 # Zajemanje slik 
 #capture_video_and_extract_frames(user_id=1)
-#preprocess_dataset()
+preprocess_dataset()
 # Augmentacija vseh slik v processed mapi
-#augment_dataset()
+augment_dataset()
