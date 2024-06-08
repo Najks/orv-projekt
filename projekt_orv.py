@@ -121,66 +121,6 @@ def augment_image(image):
 
 
 
-
-'''
-def augment_image(image):
-    augmented_images = []
-
-    # Horizontal flip
-    flip_horizontal = np.fliplr(image)
-    augmented_images.append(flip_horizontal)
-    
-    # Increase brightness
-    bright_image = np.clip(image * 1.2 + 30, 0, 255).astype(np.uint8)
-    augmented_images.append(bright_image)
-    
-    # Increase contrast
-    contrast_image = np.clip(image * 1.5, 0, 255).astype(np.uint8)
-    augmented_images.append(contrast_image)
-    
-    # Rotate image by a random angle between -10 and 10 degrees
-    rows, cols = image.shape[:2]
-    angle = np.random.uniform(-10, 10)
-    M = np.array([[np.cos(np.deg2rad(angle)), -np.sin(np.deg2rad(angle)), 0],
-                  [np.sin(np.deg2rad(angle)), np.cos(np.deg2rad(angle)), 0],
-                  [0, 0, 1]])
-    M[0, 2] = (cols - cols * np.cos(np.deg2rad(angle)) + rows * np.sin(np.deg2rad(angle))) / 2
-    M[1, 2] = (rows - cols * np.sin(np.deg2rad(angle)) - rows * np.cos(np.deg2rad(angle))) / 2
-
-    rotated_image = np.zeros_like(image)
-    for i in range(rows):
-        for j in range(cols):
-            coords = np.dot(M, [j, i, 1])
-            x, y = int(coords[0]), int(coords[1])
-            if 0 <= x < cols and 0 <= y < rows:
-                rotated_image[y, x] = image[i, j]
-    augmented_images.append(rotated_image)
-
-    # Salt and pepper noise
-    salt_prob = 0.02
-    pepper_prob = 0.02
-    noisy_image = np.copy(image)
-    num_salt = np.ceil(salt_prob * image.size)
-    num_pepper = np.ceil(pepper_prob * image.size)
-
-    # Add salt (white) noise
-    salt_x = np.random.randint(0, image.shape[1], int(num_salt))
-    salt_y = np.random.randint(0, image.shape[0], int(num_salt))
-    noisy_image[salt_y, salt_x] = 255
-
-    # Add pepper (black) noise
-    pepper_x = np.random.randint(0, image.shape[1], int(num_pepper))
-    pepper_y = np.random.randint(0, image.shape[0], int(num_pepper))
-    noisy_image[pepper_y, pepper_x] = 0
-
-    augmented_images.append(noisy_image)
-    
-    return augmented_images
-'''
-
-
-
-
 def augment_dataset(dataset_path='processed', augmented_path='comparing'):
     if not os.path.exists(augmented_path):
         os.makedirs(augmented_path)
