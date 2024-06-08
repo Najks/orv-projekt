@@ -183,3 +183,6 @@ capture_video_and_extract_frames(user_id=1)
 #preprocess_dataset()
 # Augmentacija vseh slik v processed mapi
 # augment_dataset()
+
+#video_path = "path/to/your/video/file/from/database.mp4"  # ZAMENJAJ S DVOJIM PATHOM!!!
+# get_video_from_database_and_extract_frames(user_id=1, video_path=video_path)
