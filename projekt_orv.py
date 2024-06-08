@@ -67,7 +67,7 @@ def get_video_from_database_and_extract_frames(user_id, video_path, save_path='2
     cv2.destroyAllWindows()
 
 
-def get_video_from_mongodb(user_id, mongo_uri='mongodb://localhost:27017', database_name='PaketnikDB', collection_name='user_videos', save_path='videos'):
+def get_video_from_mongodb(user_id, mongo_uri='mongodb+srv://vankaler:root@paketnikdb.nz3ehj4.mongodb.net/', database_name='PaketnikDB', collection_name='user_videos', save_path='videos'):
     # Connect to MongoDB
     client = MongoClient(mongo_uri)
     db = client[database_name]
