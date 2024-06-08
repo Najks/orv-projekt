@@ -3,6 +3,7 @@ import os
 import numpy as np
 from pyfcm import FCMNotification
 from pymongo import MongoClient
+import gridfs
 
 
 def capture_video_and_extract_frames(user_id, duration=3, save_path='dataset'):
@@ -65,6 +66,35 @@ def get_video_from_database_and_extract_frames(user_id, video_path, save_path='2
     cap.release()
     cv2.destroyAllWindows()
 
+
+def get_video_from_mongodb(user_id, mongo_uri='mongodb://localhost:27017', database_name='PaketnikDB', collection_name='user_videos', save_path='videos'):
+    # Connect to MongoDB
+    client = MongoClient(mongo_uri)
+    db = client[database_name]
+    fs = gridfs.GridFS(db)
+
+    # Query to get the video file from GridFS
+    video_file = fs.find_one({'user_id': user_id})
+    
+    if video_file is None:
+        raise ValueError(f"No video found for user_id {user_id}")
+
+    # Ensure the save path directory exists
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    # Define the video file path
+    video_file_path = os.path.join(save_path, f'user_{user_id}.mp4')
+
+    # Save the video file locally
+    with open(video_file_path, 'wb') as f:
+        f.write(video_file.read())
+
+    # Close the MongoDB connection
+    client.close()
+
+    print(f"Video for user_id {user_id} saved to {video_file_path}")
+    return video_file_path
 
 
 def preprocess_image(image_path):
