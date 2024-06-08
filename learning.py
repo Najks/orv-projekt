@@ -29,15 +29,20 @@ if __name__ == '__main__':
     model.fc = nn.Linear(num_ftrs, 512)
     model.classifier = nn.Sequential(
         nn.Dropout(0.5),
-        nn.Linear(512, len(class_names))
+        nn.Linear(512, 256),
+        nn.ReLU(),
+        nn.Linear(256, len(class_names))
     )
 
     model = model.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.01, weight_decay=0.001)
+    # underfitting = increase lr, decrease weight decay
+    # overfitting = decrease lr, increase weight decay
+    optimizer = optim.Adam(model.parameters(), lr=0.000005, weight_decay=0.02)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
+    from tqdm import tqdm
 
     def train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=50, patience=3):
         best_model_wts = model.state_dict()
@@ -53,7 +58,9 @@ if __name__ == '__main__':
             running_loss = 0.0
             running_corrects = 0
 
-            for inputs, labels in tqdm(dataloader):
+            pbar = tqdm(total=len(dataloader), desc=f"Epoch {epoch + 1}/{num_epochs}", dynamic_ncols=True)
+
+            for inputs, labels in dataloader:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
@@ -68,6 +75,11 @@ if __name__ == '__main__':
 
                 running_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(preds == labels.data)
+
+                pbar.set_postfix({'loss': running_loss / ((pbar.n + 1) * dataloader.batch_size)})
+                pbar.update()
+
+            pbar.close()
 
             epoch_loss = running_loss / dataset_size
             epoch_acc = running_corrects.double() / dataset_size
@@ -90,6 +102,6 @@ if __name__ == '__main__':
         model.load_state_dict(best_model_wts)
         return model
 
-    model = train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=25, patience=5)
+    model = train_model(model, criterion, optimizer, dataloader, dataset_size, num_epochs=50, patience=5)
 
     torch.save(model.state_dict(), 'face_recognition_model.pth')
