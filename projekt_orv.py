@@ -39,74 +39,6 @@ def capture_video_and_extract_frames(user_id, duration=3, save_path='dataset'):
     cap.release()
     cv2.destroyAllWindows()
 
-def get_video_from_database_and_extract_frames(user_id, video_path, save_path='2fa_check'):
-    # Create directory if it doesn't exist
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    # Open the video file
-    cap = cv2.VideoCapture(video_path)
-
-    frame_count = 0
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    frames_to_capture = [int(total_frames * 0.25), int(total_frames * 0.5), int(total_frames * 0.75)]
-    
-    while frame_count < total_frames:
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        if frame_count in frames_to_capture:
-            img_name = f"{save_path}/user_{user_id}_frame_{frame_count}.jpg"
-            cv2.imwrite(img_name, frame)
-            print(f"{img_name} saved.")
-        
-        frame_count += 1
-
-    cap.release()
-    cv2.destroyAllWindows()
-
-
-def get_video_from_mongodb(user_id, mongo_uri='mongodb+srv://vankaler:root@paketnikdb.nz3ehj4.mongodb.net/', database_name='PaketnikDB', collection_name='user_videos', save_path='videos'):
-    # Connect to MongoDB
-    client = MongoClient(mongo_uri)
-    db = client[database_name]
-    fs = gridfs.GridFS(db)
-
-    # Query to get the video file from GridFS
-    video_file = fs.find_one({'user_id': user_id})
-    
-    if video_file is None:
-        raise ValueError(f"No video found for user_id {user_id}")
-
-    # Ensure the save path directory exists
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-
-    # Define the video file path
-    video_file_path = os.path.join(save_path, f'user_{user_id}.mp4')
-
-    # Save the video file locally
-    with open(video_file_path, 'wb') as f:
-        f.write(video_file.read())
-
-    # Close the MongoDB connection
-    client.close()
-
-    print(f"Video for user_id {user_id} saved to {video_file_path}")
-    return video_file_path
-
-
-def preprocess_image(image_path):
-    image = cv2.imread(image_path)
-    
-    # Odstranjevanje šuma z Gaussovim zamegljevanjem
-    image = cv2.GaussianBlur(image, (5, 5), 0)
-    
-    # Pretvorba v sivinsko lestvico
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    return gray_image
 
 
 def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
@@ -197,6 +129,77 @@ def augment_dataset(dataset_path='processed', augmented_path='learning'):
             print(f"{aug_img_path} saved.")
 
 
+def get_video_from_database_and_extract_frames(user_id, video_path, save_path='2fa_check'):
+    # Create directory if it doesn't exist
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    # Open the video file
+    cap = cv2.VideoCapture(video_path)
+
+    frame_count = 0
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frames_to_capture = [int(total_frames * 0.25), int(total_frames * 0.5), int(total_frames * 0.75)]
+    
+    while frame_count < total_frames:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if frame_count in frames_to_capture:
+            img_name = f"{save_path}/user_{user_id}_frame_{frame_count}.jpg"
+            cv2.imwrite(img_name, frame)
+            print(f"{img_name} saved.")
+        
+        frame_count += 1
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+
+def get_video_from_mongodb(user_id, mongo_uri='mongodb+srv://vankaler:root@paketnikdb.nz3ehj4.mongodb.net/', database_name='PaketnikDB', collection_name='user_videos', save_path='videos'):
+    # Connect to MongoDB
+    client = MongoClient(mongo_uri)
+    db = client[database_name]
+    fs = gridfs.GridFS(db)
+
+    # Query to get the video file from GridFS
+    video_file = fs.find_one({'user_id': user_id})
+    
+    if video_file is None:
+        raise ValueError(f"No video found for user_id {user_id}")
+
+    # Ensure the save path directory exists
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    # Define the video file path
+    video_file_path = os.path.join(save_path, f'user_{user_id}.mp4')
+
+    # Save the video file locally
+    with open(video_file_path, 'wb') as f:
+        f.write(video_file.read())
+
+    # Close the MongoDB connection
+    client.close()
+
+    print(f"Video for user_id {user_id} saved to {video_file_path}")
+    return video_file_path
+
+
+
+def preprocess_image(image_path):
+    image = cv2.imread(image_path)
+    
+    # Odstranjevanje šuma z Gaussovim zamegljevanjem
+    image = cv2.GaussianBlur(image, (5, 5), 0)
+    
+    # Pretvorba v sivinsko lestvico
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    return gray_image
+
 
 def send_push_notification(registration_id, message_title, message_body):
     api_key = "9ea96945-3a37-4638-a5d4-22e89fbc998f"
@@ -215,5 +218,5 @@ capture_video_and_extract_frames(user_id=1)
 # Augmentacija vseh slik v processed mapi
 # augment_dataset()
 
-# video_path = "path/to/your/video/file/from/database.mp4"  # ZAMENJAJ S DVOJIM PATHOM!!!
+# video_path = get_video_from_mongodb(user_id=1)  # Replace this with the actual user ID
 # get_video_from_database_and_extract_frames(user_id=1, video_path=video_path)
