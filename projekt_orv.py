@@ -37,6 +37,34 @@ def capture_video_and_extract_frames(user_id, duration=3, save_path='dataset'):
     cap.release()
     cv2.destroyAllWindows()
 
+def get_video_from_database_and_extract_frames(user_id, video_path, save_path='2fa_check'):
+    # Create directory if it doesn't exist
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    # Open the video file
+    cap = cv2.VideoCapture(video_path)
+
+    frame_count = 0
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frames_to_capture = [int(total_frames * 0.25), int(total_frames * 0.5), int(total_frames * 0.75)]
+    
+    while frame_count < total_frames:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        if frame_count in frames_to_capture:
+            img_name = f"{save_path}/user_{user_id}_frame_{frame_count}.jpg"
+            cv2.imwrite(img_name, frame)
+            print(f"{img_name} saved.")
+        
+        frame_count += 1
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
 
 def preprocess_image(image_path):
     image = cv2.imread(image_path)
@@ -151,7 +179,7 @@ def send_push_notification(registration_id, message_title, message_body):
 #registration_id = "DEVICE_REGISTRATION_ID"
 #send_push_notification(registration_id, "2FA Verification", "Please verify your login attempt.")
 # Zajemanje slik 
-#capture_video_and_extract_frames(user_id=1)
+capture_video_and_extract_frames(user_id=1)
 #preprocess_dataset()
 # Augmentacija vseh slik v processed mapi
 # augment_dataset()
