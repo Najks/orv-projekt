@@ -55,8 +55,74 @@ def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
         print(f"{processed_img_path} saved.")
 
 
+def augment_image(image):
+    augmented_images = []
+    rows, cols = image.shape[:2]
+    
+    for _ in range(4):
+        augmented_image = image.copy()
+        
+        # Horizontal flip with a probability of 0.5
+        if np.random.rand() > 0.5:
+            augmented_image = np.fliplr(augmented_image)
+        
+        # Random brightness change
+        brightness_factor = np.random.uniform(0.8, 1.2)
+        augmented_image = np.clip(augmented_image * brightness_factor + np.random.uniform(-30, 30), 0, 255).astype(np.uint8)
+        
+        # Random contrast change
+        contrast_factor = np.random.uniform(0.8, 1.5)
+        augmented_image = np.clip(augmented_image * contrast_factor, 0, 255).astype(np.uint8)
+        
+        # Rotate image by a random angle between -15 and 15 degrees
+        angle = np.random.uniform(-15, 15)
+        M = np.array([[np.cos(np.deg2rad(angle)), -np.sin(np.deg2rad(angle)), 0],
+                      [np.sin(np.deg2rad(angle)), np.cos(np.deg2rad(angle)), 0],
+                      [0, 0, 1]])
+        M[0, 2] = (cols - cols * np.cos(np.deg2rad(angle)) + rows * np.sin(np.deg2rad(angle))) / 2
+        M[1, 2] = (rows - cols * np.sin(np.deg2rad(angle)) - rows * np.cos(np.deg2rad(angle))) / 2
+        
+        rotated_image = np.zeros_like(augmented_image)
+        for i in range(rows):
+            for j in range(cols):
+                coords = np.dot(M, [j, i, 1])
+                x, y = int(coords[0]), int(coords[1])
+                if 0 <= x < cols and 0 <= y < rows:
+                    rotated_image[y, x] = augmented_image[i, j]
+        augmented_image = rotated_image
+
+        # Salt and pepper noise
+        salt_prob = np.random.uniform(0.01, 0.05)
+        pepper_prob = np.random.uniform(0.01, 0.05)
+        num_salt = np.ceil(salt_prob * augmented_image.size)
+        num_pepper = np.ceil(pepper_prob * augmented_image.size)
+
+        salt_x = np.random.randint(0, cols, int(num_salt))
+        salt_y = np.random.randint(0, rows, int(num_salt))
+        augmented_image[salt_y, salt_x] = 255
+
+        pepper_x = np.random.randint(0, cols, int(num_pepper))
+        pepper_y = np.random.randint(0, rows, int(num_pepper))
+        augmented_image[pepper_y, pepper_x] = 0
+
+        # Random resizing
+        new_cols = np.random.randint(int(cols * 0.8), int(cols * 1.2))
+        new_rows = np.random.randint(int(rows * 0.8), int(rows * 1.2))
+        resized_image = np.zeros((new_rows, new_cols, 3), dtype=np.uint8)
+        for i in range(new_rows):
+            for j in range(new_cols):
+                orig_x = int(j / new_cols * cols)
+                orig_y = int(i / new_rows * rows)
+                resized_image[i, j] = augmented_image[orig_y, orig_x]
+
+        augmented_images.append(resized_image)
+    
+    return augmented_images
 
 
+
+
+'''
 def augment_image(image):
     augmented_images = []
 
@@ -110,11 +176,12 @@ def augment_image(image):
     augmented_images.append(noisy_image)
     
     return augmented_images
+'''
 
 
 
 
-def augment_dataset(dataset_path='processed', augmented_path='learning'):
+def augment_dataset(dataset_path='processed', augmented_path='comparing'):
     if not os.path.exists(augmented_path):
         os.makedirs(augmented_path)
 
@@ -213,6 +280,7 @@ def send_push_notification(registration_id, message_title, message_body):
 #registration_id = "DEVICE_REGISTRATION_ID"
 #send_push_notification(registration_id, "2FA Verification", "Please verify your login attempt.")
 # Zajemanje slik 
+
 capture_video_and_extract_frames(user_id=1)
 #preprocess_dataset()
 # Augmentacija vseh slik v processed mapi
@@ -220,3 +288,4 @@ capture_video_and_extract_frames(user_id=1)
 
 # video_path = get_video_from_mongodb(user_id=1)  # Replace this with the actual user ID
 # get_video_from_database_and_extract_frames(user_id=1, video_path=video_path)
+
