@@ -1,17 +1,21 @@
 from flask import Flask, request, jsonify, send_from_directory
 import requests
-from werkzeug.utils import secure_filename
 import os
 import cv2
-from compare import compare_images  
+from compare import compare_images
+from projekt_orv import preprocess_image, augment_image  # Ensure these functions are imported correctly
 
 app = Flask(__name__)
 
 app.config['UPLOAD_FOLDER'] = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'project-rai-backend', 'uploads'))
 app.config['FRAME_FOLDER'] = os.path.abspath(os.path.join(os.path.dirname(__file__), 'frames'))
+app.config['PROCESSED_FOLDER'] = os.path.abspath(os.path.join(os.path.dirname(__file__), 'processed'))
+app.config['AUGMENTED_FOLDER'] = os.path.abspath(os.path.join(os.path.dirname(__file__), 'augmented'))
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['FRAME_FOLDER'], exist_ok=True)
+os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
+os.makedirs(app.config['AUGMENTED_FOLDER'], exist_ok=True)
 
 def extract_frames(video_path, num_frames=3):
     print(f"Extracting frames from video: {video_path}")
@@ -29,11 +33,32 @@ def extract_frames(video_path, num_frames=3):
             cv2.imwrite(frame_filename, frame)
             frames.append(frame_filename)
             print(f"Extracted frame {i}: {frame_filename}")
+
+            # Preprocess the frame
+            processed_frame = preprocess_image(frame_filename)
+            processed_filename = os.path.join(app.config['PROCESSED_FOLDER'], f'processed_frame_{i}.jpg')
+            cv2.imwrite(processed_filename, processed_frame)
+            print(f"Processed frame {i}: {processed_filename}")
+
+            # Augment the processed frame
+            augmented_images = augment_image(processed_frame)
+            for j, aug_img in enumerate(augmented_images):
+                augmented_filename = os.path.join(app.config['AUGMENTED_FOLDER'], f'augmented_frame_{i}_{j}.jpg')
+                cv2.imwrite(augmented_filename, aug_img)
+                print(f"Augmented frame {i}_{j}: {augmented_filename}")
         else:
             print(f"Failed to extract frame {i}")
     
     cap.release()
     return frames
+
+def cleanup_files(file_list):
+    for file_path in file_list:
+        try:
+            os.remove(file_path)
+            print(f"Removed file: {file_path}")
+        except Exception as e:
+            print(f"Error removing file {file_path}: {e}")
 
 @app.route('/process_video', methods=['POST'])
 def process_video():
@@ -59,13 +84,11 @@ def process_video():
     verification_result = compare_images(frames)  # Pass the list of image paths
     print(f"Verification result from compare_images: {verification_result}")
 
-    # Comment out the frame deletion part for debugging
-    # for frame in frames:
-    #     try:
-    #         os.remove(frame)
-    #         print(f"Removed frame: {frame}")
-    #     except Exception as e:
-    #         print(f"Error removing frame {frame}: {e}")
+    # Clean up frames, processed, and augmented images
+    cleanup_files(frames)
+    processed_files = [os.path.join(app.config['PROCESSED_FOLDER'], f) for f in os.listdir(app.config['PROCESSED_FOLDER'])]
+    augmented_files = [os.path.join(app.config['AUGMENTED_FOLDER'], f) for f in os.listdir(app.config['AUGMENTED_FOLDER'])]
+    cleanup_files(processed_files + augmented_files)
 
     if verification_result == 0:
         print("No match found")
