@@ -55,6 +55,22 @@ def preprocess_dataset(dataset_path='dataset', processed_path='processed'):
         print(f"{processed_img_path} saved.")
 
 
+def preprocess_image(image_path):
+    image = cv2.imread(image_path)
+    
+    # Odstranjevanje šuma z Gaussovim zamegljevanjem
+    image = cv2.GaussianBlur(image, (5, 5), 0)
+    
+    # Pretvorba v sivinsko lestvico
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
+    # Linearizacija sivin (normalizacija)
+    linearized_image = cv2.normalize(gray_image, None, 0, 255, cv2.NORM_MINMAX)
+
+    return linearized_image
+
+
+
 def augment_image(image):
     augmented_images = []
     rows, cols = image.shape[:2]
@@ -137,18 +153,6 @@ def augment_dataset(dataset_path='processed', augmented_path='comparing'):
 
 
 
-def preprocess_image(image_path):
-    image = cv2.imread(image_path)
-    
-    # Odstranjevanje šuma z Gaussovim zamegljevanjem
-    image = cv2.GaussianBlur(image, (5, 5), 0)
-    
-    # Pretvorba v sivinsko lestvico
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    return gray_image
-
-
 def send_push_notification(registration_id, message_title, message_body):
     api_key = "9ea96945-3a37-4638-a5d4-22e89fbc998f"
     push_service = FCMNotification(api_key=api_key)
@@ -163,7 +167,7 @@ def send_push_notification(registration_id, message_title, message_body):
 # Zajemanje slik 
 
 capture_video_and_extract_frames(user_id=1)
-#preprocess_dataset()
+preprocess_dataset()
 # Augmentacija vseh slik v processed mapi
 # augment_dataset()
 
