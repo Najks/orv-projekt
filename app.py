@@ -3,7 +3,7 @@ import requests
 import os
 import cv2
 from compare import compare_images
-from projekt_orv import preprocess_image, augment_image  # Ensure these functions are imported correctly
+from projekt_orv import preprocess_image, augment_image 
 
 app = Flask(__name__)
 
@@ -34,13 +34,11 @@ def extract_frames(video_path, num_frames=3):
             frames.append(frame_filename)
             print(f"Extracted frame {i}: {frame_filename}")
 
-            # Preprocess the frame
             processed_frame = preprocess_image(frame_filename)
             processed_filename = os.path.join(app.config['PROCESSED_FOLDER'], f'processed_frame_{i}.jpg')
             cv2.imwrite(processed_filename, processed_frame)
             print(f"Processed frame {i}: {processed_filename}")
 
-            # Augment the processed frame
             augmented_images = augment_image(processed_frame)
             for j, aug_img in enumerate(augmented_images):
                 augmented_filename = os.path.join(app.config['AUGMENTED_FOLDER'], f'augmented_frame_{i}_{j}.jpg')
@@ -80,14 +78,16 @@ def process_video():
 
     print(f"Extracted frames: {frames}")
 
-    # Call compare_images function with extracted frames
-    verification_result = compare_images(frames)  # Pass the list of image paths
+    # Collect all augmented frame paths
+    augmented_files = [os.path.join(app.config['AUGMENTED_FOLDER'], f) for f in os.listdir(app.config['AUGMENTED_FOLDER'])]
+
+    # Call compare_images function with augmented frames
+    verification_result = compare_images(augmented_files)  # Pass the list of augmented image paths
     print(f"Verification result from compare_images: {verification_result}")
 
     # Clean up frames, processed, and augmented images
     cleanup_files(frames)
     processed_files = [os.path.join(app.config['PROCESSED_FOLDER'], f) for f in os.listdir(app.config['PROCESSED_FOLDER'])]
-    augmented_files = [os.path.join(app.config['AUGMENTED_FOLDER'], f) for f in os.listdir(app.config['AUGMENTED_FOLDER'])]
     cleanup_files(processed_files + augmented_files)
 
     if verification_result == 0:
@@ -96,6 +96,7 @@ def process_video():
     else:
         print(f"Match found: Identity {verification_result}")
         return jsonify({'success': True, 'identity': verification_result}), 200
+
 
 @app.route('/get_video/<filename>', methods=['GET'])
 def get_video(filename):
