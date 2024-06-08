@@ -24,10 +24,14 @@ if __name__ == '__main__':
     model.fc = nn.Linear(num_ftrs, 512)
     model.classifier = nn.Sequential(
         nn.Dropout(0.5),
-        nn.Linear(512, 3)
+        nn.Linear(512, 256),
+        nn.ReLU(),
+        nn.Linear(256, 3)
     )
-    model = model.to(device)
     model.eval()
+
+    model.load_state_dict(torch.load('face_recognition_model.pth'))
+    model = model.to(device)
 
     test_images_folder = 'comparing'
     images = []
@@ -42,7 +46,7 @@ if __name__ == '__main__':
     predictions = []
 
 
-    def compare_images(test_images_folder='comparing', threshold=0):
+    def compare_images(test_images_folder='comparing', threshold=90):
         images = []
         for filename in os.listdir(test_images_folder):
             image_path = os.path.join(test_images_folder, filename)
@@ -53,6 +57,7 @@ if __name__ == '__main__':
         class_names = ['domen', 'nejc', 'nik']
         class_mapping = {'domen': 1, 'nik': 2, 'nejc': 3}
         predictions = []
+        total_confidence = 0
 
         with torch.no_grad():
             confident_predictions = []
@@ -62,10 +67,14 @@ if __name__ == '__main__':
                 probs = F.softmax(outputs, dim=1)
                 max_prob, preds = torch.max(probs, 1)
                 confidence = max_prob.item() * 100
+                total_confidence += confidence
                 if confidence > threshold:
                     confident_predictions.append((class_names[preds.item()], confidence))
                 predictions.append((class_names[preds.item()], confidence))
                 print(f"Image result: {class_names[preds.item()]}, Accuracy: {confidence}%")
+
+            average_confidence = total_confidence / len(predictions)
+            print(f"Average confidence: {average_confidence}%")
 
             if len(confident_predictions) < len(predictions) / 2:
                 return 0
