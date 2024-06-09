@@ -70,7 +70,6 @@ def process_video():
 
     print(f"Processing video file at path: {file_path}")
 
-    # Extract frames from the video
     frames = extract_frames(file_path)
     if not frames:
         print("Failed to extract frames from video")
@@ -78,14 +77,11 @@ def process_video():
 
     print(f"Extracted frames: {frames}")
 
-    # Collect all augmented frame paths
     augmented_files = [os.path.join(app.config['AUGMENTED_FOLDER'], f) for f in os.listdir(app.config['AUGMENTED_FOLDER'])]
 
-    # Call compare_images function with augmented frames
-    verification_result = compare_images(augmented_files)  # Pass the list of augmented image paths
+    verification_result = compare_images(augmented_files) 
     print(f"Verification result from compare_images: {verification_result}")
 
-    # Clean up frames, processed, and augmented images
     cleanup_files(frames)
     processed_files = [os.path.join(app.config['PROCESSED_FOLDER'], f) for f in os.listdir(app.config['PROCESSED_FOLDER'])]
     cleanup_files(processed_files + augmented_files)
@@ -153,4 +149,4 @@ def print_uploads_on_startup():
 
 if __name__ == '__main__':
     print_uploads_on_startup()  
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
