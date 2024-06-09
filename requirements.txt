@@ -5,3 +5,4 @@ pyfcm
 requests
 torch
 torchvision
+pillow
