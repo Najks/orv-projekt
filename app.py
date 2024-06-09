@@ -17,6 +17,10 @@ os.makedirs(app.config['FRAME_FOLDER'], exist_ok=True)
 os.makedirs(app.config['PROCESSED_FOLDER'], exist_ok=True)
 os.makedirs(app.config['AUGMENTED_FOLDER'], exist_ok=True)
 
+@app.route('/')
+def hello_world():
+    return 'Hello, World!'
+
 def extract_frames(video_path, num_frames=3):
     print(f"Extracting frames from video: {video_path}")
     cap = cv2.VideoCapture(video_path)
@@ -151,3 +155,4 @@ if __name__ == '__main__':
     print_uploads_on_startup()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
+
