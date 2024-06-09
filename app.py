@@ -148,5 +148,6 @@ def print_uploads_on_startup():
         print(f"Error listing files in 'uploads' folder: {e}")
 
 if __name__ == '__main__':
-    print_uploads_on_startup()  
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print_uploads_on_startup()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)

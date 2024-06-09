@@ -6,3 +6,7 @@ requests
 torch
 torchvision
 pillow
+pytest
+pymongo
+tqdm
+facenet-pytorch
