@@ -33,7 +33,7 @@ model = model.to(device)
 
 class_mapping = {'domen': 1, 'nik': 2, 'nejc': 3}
 
-def compare_images(image_paths, threshold=70):
+def compare_images(image_paths, threshold=50):
     images = []
     for image_path in image_paths:
         image = Image.open(image_path)

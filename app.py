@@ -4,6 +4,7 @@ import os
 import cv2
 from compare import compare_images
 from projekt_orv import preprocess_image, augment_image 
+from decompress import read_compressed_file, Decompress, write_decompressed_bmp
 
 app = Flask(__name__)
 
@@ -21,7 +22,7 @@ os.makedirs(app.config['AUGMENTED_FOLDER'], exist_ok=True)
 def hello_world():
     return 'Hello, World!'
 
-def extract_frames(video_path, num_frames=3):
+def extract_frames(video_path, num_frames=1):
     print(f"Extracting frames from video: {video_path}")
     cap = cv2.VideoCapture(video_path)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -64,13 +65,16 @@ def cleanup_files(file_list):
 
 @app.route('/process_video', methods=['POST'])
 def process_video():
-    file_path = request.json.get('file_path')
-    file_path = os.path.abspath(os.path.join(app.config['UPLOAD_FOLDER'], os.path.basename(file_path)))
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part in the request'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(file_path)
     print(f"Received request to process video. File path: {file_path}")
-
-    if not file_path or not os.path.exists(file_path):
-        print(f"Invalid file path: {file_path}")
-        return jsonify({'error': 'File path is invalid or does not exist'}), 400
 
     print(f"Processing video file at path: {file_path}")
 
@@ -92,20 +96,10 @@ def process_video():
 
     if verification_result == 0:
         print("No match found")
-        return jsonify({'success': False, 'identity': 0}), 200
+        return jsonify({'success': True, 'identity': 0}), 200
     else:
         print(f"Match found: Identity {verification_result}")
         return jsonify({'success': True, 'identity': verification_result}), 200
-
-
-@app.route('/get_video/<filename>', methods=['GET'])
-def get_video(filename):
-    print(f"Received request to get video: {filename}")
-    try:
-        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    except FileNotFoundError:
-        print(f"File not found: {filename}")
-        return jsonify({'error': 'File not found'}), 404
 
 @app.route('/send_notification', methods=['POST'])
 def send_notification():
@@ -116,7 +110,7 @@ def send_notification():
     print(f"Sending notification to {registration_id} with title '{title}' and message '{message}'")
 
     try:
-        response = requests.post('http://localhost:3001/send-notification', json={
+        response = requests.post('http://backend:3001/send-notification', json={
             'userId': registration_id,
             'title': title,
             'message': message
@@ -155,4 +149,3 @@ if __name__ == '__main__':
     print_uploads_on_startup()
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
-
